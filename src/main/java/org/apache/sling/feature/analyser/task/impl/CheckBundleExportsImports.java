@@ -31,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,6 +47,7 @@ import java.util.TreeMap;
 public class CheckBundleExportsImports implements AnalyserTask {
     private static final String GLOBAL_REGION = "global";
     private static final String NO_REGION = " __NO_REGION__ ";
+    private static final String OWN_FEATURE = " __OWN_FEATURE__ ";
 
     @Override
     public String getName() {
@@ -70,6 +72,8 @@ public class CheckBundleExportsImports implements AnalyserTask {
         public List<PackageInfo> missingExportsWithVersion = new ArrayList<>();
 
         public List<PackageInfo> missingExportsForOptional = new ArrayList<>();
+
+        public Map<PackageInfo, Map.Entry<Set<String>, Set<String>>> regionInfo = new HashMap<>();
     }
 
     private Report getReport(final Map<BundleDescriptor, Report> reports, final BundleDescriptor info) {
@@ -149,7 +153,7 @@ public class CheckBundleExportsImports implements AnalyserTask {
                 if ( info.getImportedPackages() != null ) {
                     for(final PackageInfo pck : info.getImportedPackages() ) {
                         final Map<BundleDescriptor, Set<String>> candidates =
-                                getCandidates(exportingBundles, pck,
+                                getCandidates(exportingBundles, pck, info,
                                         bundleToOriginalFeatures, featureToOriginalRegions, apiRegions);
                         if ( candidates.isEmpty() ) {
                             if ( pck.isOptional() ) {
@@ -160,28 +164,40 @@ public class CheckBundleExportsImports implements AnalyserTask {
                         } else {
                             final List<BundleDescriptor> matchingCandidates = new ArrayList<>();
 
+                            Set<String> exportingRegions = new HashSet<>();
+                            Set<String> importingRegions = new HashSet<>();
                             for(final Map.Entry<BundleDescriptor, Set<String>> candidate : candidates.entrySet()) {
                                 BundleDescriptor bd = candidate.getKey();
                                 if (bd.isExportingPackage(pck)) {
-                                    Set<String> regions = candidate.getValue();
-                                    if (regions.contains(NO_REGION)) {
+                                    if (bd.equals(info)) {
+                                        // A feature can always import packages from bundles in itself
+                                        matchingCandidates.add(bd);
+                                        continue;
+                                    }
+
+                                    Set<String> exRegions = candidate.getValue();
+                                    if (exRegions.contains(NO_REGION)) {
                                         // If an export is defined outside of a region, it always matches
                                         matchingCandidates.add(bd);
                                         continue;
                                     }
-                                    if (regions.contains(GLOBAL_REGION)) {
+                                    if (exRegions.contains(GLOBAL_REGION)) {
                                         matchingCandidates.add(bd);
                                         continue;
                                     }
 
                                     // Find out what regions the importing bundle is in
-                                    Set<String> importingBundleRegions =
+                                    Set<String> imRegions =
                                             getBundleRegions(info, bundleToOriginalFeatures, featureToOriginalRegions);
 
-                                    // Only keep the regions that also export the package
-                                    importingBundleRegions.retainAll(regions);
+                                    // Record the exporting and importing regions for diagnostics
+                                    exportingRegions.addAll(exRegions);
+                                    importingRegions.addAll(imRegions);
 
-                                    if (importingBundleRegions.size() > 0) {
+                                    // Only keep the regions that also export the package
+                                    imRegions.retainAll(exRegions);
+
+                                    if (imRegions.size() > 0) {
                                         // there is an overlapping region
                                         matchingCandidates.add(bd);
                                     }
@@ -193,6 +209,7 @@ public class CheckBundleExportsImports implements AnalyserTask {
                                     getReport(reports, info).missingExportsForOptional.add(pck);
                                 } else {
                                     getReport(reports, info).missingExportsWithVersion.add(pck);
+                                    getReport(reports, info).regionInfo.put(pck, new AbstractMap.SimpleEntry<>(exportingRegions, importingRegions));
                                 }
                             } else if ( matchingCandidates.size() > 1 ) {
                                 getReport(reports, info).exportMatchingSeveral.add(pck);
@@ -218,16 +235,37 @@ public class CheckBundleExportsImports implements AnalyserTask {
                         String.valueOf(entry.getKey().getBundleStartLevel()) + " but no bundle is exporting these for that start level.");
             }
             if ( !entry.getValue().missingExportsWithVersion.isEmpty() ) {
-                ctx.reportError(key + " is importing package(s) " + getPackageInfo(entry.getValue().missingExportsWithVersion, true) + " in start level " +
-                        String.valueOf(entry.getKey().getBundleStartLevel()) + " but no bundle is exporting these for that start level in the required version range.");
+                StringBuilder message = new StringBuilder(key + " is importing package(s) " + getPackageInfo(entry.getValue().missingExportsWithVersion, true) + " in start level " +
+                        String.valueOf(entry.getKey().getBundleStartLevel()) + " but no visible bundle is exporting these for that start level in the required version range.");
+
+                for (Map.Entry<PackageInfo, Map.Entry<Set<String>, Set<String>>> regionInfoEntry : entry.getValue().regionInfo.entrySet()) {
+                    PackageInfo pkg = regionInfoEntry.getKey();
+                    Map.Entry<Set<String>, Set<String>> regions = regionInfoEntry.getValue();
+                    message.append("\n" + pkg.getName() + " is exported in regions " + regions.getKey() + " but it is imported in regions " + regions.getValue());
+                }
+                ctx.reportError(message.toString());
             }
         }
     }
 
     private Set<String> getBundleRegions(BundleDescriptor info, Map<String, Set<String>> bundleToOriginalFeatures,
             Map<String, Set<String>> featureToOriginalRegions) {
-        // TODO Auto-generated method stub
-        return null;
+        Set<String> result = new HashSet<>();
+
+        Set<String> originFeatures = bundleToOriginalFeatures.get(info.getArtifact().getId().toMvnId());
+        if (originFeatures != null) {
+            for (String feature : originFeatures) {
+                Set<String> originRegions = featureToOriginalRegions.get(feature);
+                if (originRegions != null) {
+                    result.addAll(originRegions);
+                }
+            }
+        }
+
+        if (result.size() == 0) {
+            result.add(NO_REGION);
+        }
+        return result;
     }
 
     private ApiRegions readAPIRegionsFromFeature(final AnalyserTaskContext ctx) {
@@ -274,37 +312,29 @@ public class CheckBundleExportsImports implements AnalyserTask {
     private Map<BundleDescriptor, Set<String>> getCandidates(
             final List<BundleDescriptor> exportingBundles,
             final PackageInfo pck,
+            final BundleDescriptor requestingBundle,
             final Map<String, Set<String>> bundleToOriginalFeatures,
             final Map<String, Set<String>> featureToOriginalRegions,
             final ApiRegions apiRegions) throws IOException {
         final Map<BundleDescriptor, Set<String>> candidates = new HashMap<>();
         for(final BundleDescriptor info : exportingBundles) {
             if ( info.isExportingPackage(pck.getName()) ) {
-                Set<String> originFeatures = bundleToOriginalFeatures.get(info.getBundleSymbolicName());
+                if (requestingBundle.equals(info)) {
+                    // A requesting bundle can see all exported packages inside its own feature
+                    candidates.put(info, Collections.singleton(OWN_FEATURE));
+                    continue;
+                }
 
-                if (originFeatures != null) {
-                    for (String feature : originFeatures) {
-                        Set<String> originRegions = featureToOriginalRegions.get(feature);
+                for (String region : getBundleRegions(info, bundleToOriginalFeatures, featureToOriginalRegions)) {
+                    if (!NO_REGION.equals(region) && !apiRegions.getApis(region).contains(pck.getName()))
+                        continue;
 
-                        if (originRegions != null) {
-                            for (String region : originRegions) {
-                                if (!apiRegions.getApis(region).contains(pck.getName())) {
-                                    continue;
-                                }
-
-                                Set<String> regions = candidates.get(info);
-                                if (regions == null) {
-                                    regions = new HashSet<>();
-                                    candidates.put(info, regions);
-                                }
-                                regions.add(region);
-                            }
-                        } else {
-                            candidates.put(info, Collections.singleton(NO_REGION));
-                        }
+                    Set<String> regions = candidates.get(info);
+                    if (regions == null) {
+                        regions = new HashSet<>();
+                        candidates.put(info, regions);
                     }
-                } else {
-                    candidates.put(info, Collections.singleton(NO_REGION));
+                    regions.add(region);
                 }
             }
         }
