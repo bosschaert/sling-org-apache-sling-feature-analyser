@@ -46,6 +46,13 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class CheckBundleExportsImports implements AnalyserTask {
+    /**
+     * Ignore API Region information files being absent.
+     */
+    private static final String SKIP_API_REGION_FILE_ERRORS_SYSTEM_PROPERTY = "skipAPIRegionFileErrors";
+
+    private static final String FILE_STORAGE_CONFIG_KEY = "fileStorage";
+    private static final String API_REGIONS = "api-regions";
     private static final String GLOBAL_REGION = "global";
     private static final String NO_REGION = " __NO_REGION__ ";
     private static final String OWN_FEATURE = " __OWN_FEATURE__ ";
@@ -270,7 +277,7 @@ public class CheckBundleExportsImports implements AnalyserTask {
 
     private ApiRegions readAPIRegionsFromFeature(final AnalyserTaskContext ctx) {
         Feature feature = ctx.getFeature();
-        Extension apiRegionsExtension = feature.getExtensions().getByName("api-regions");
+        Extension apiRegionsExtension = feature.getExtensions().getByName(API_REGIONS);
         if (apiRegionsExtension == null)
             return null;
 
@@ -365,18 +372,30 @@ public class CheckBundleExportsImports implements AnalyserTask {
     }
 
     private Map<String, Set<String>> readOrigins(AnalyserTaskContext ctx, String fileName) throws IOException, FileNotFoundException {
-        String fileStorage = ctx.getConfiguration().get("fileStorage");
-        if (fileStorage == null)
+        Feature feature = ctx.getFeature();
+        Extension APIRegionExtension = feature.getExtensions().getByName(API_REGIONS);
+
+        String fileStorage = ctx.getConfiguration().get(FILE_STORAGE_CONFIG_KEY);
+        if (fileStorage == null) {
+            if (APIRegionExtension != null && System.getProperty(SKIP_API_REGION_FILE_ERRORS_SYSTEM_PROPERTY) == null) {
+                throw new IllegalStateException("Feature " + feature.getId() +
+                        " has API regions defined, but no storage is configured for origin information files. "
+                        + "Please configure the " + FILE_STORAGE_CONFIG_KEY + " configuration item.");
+            }
             return Collections.emptyMap();
+        }
+
+        String featureName = feature.getId().toMvnId().replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
+        File file = new File(fileStorage, featureName + File.separator + fileName);
+        if (!file.exists()) {
+            if (APIRegionExtension != null && System.getProperty(SKIP_API_REGION_FILE_ERRORS_SYSTEM_PROPERTY) == null)
+                throw new IllegalStateException("Feature " + feature.getId() +
+                        " has API regions defined but no file with origin information can be found " + file +
+                        " Configure the org.apache.sling.feature.extension.apiregions appropriately to write this information");
+            return Collections.emptyMap();
+        }
 
         Properties p = new Properties();
-
-        String featureName = ctx.getFeature().getId().toMvnId().replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
-
-        File file = new File(fileStorage, featureName + File.separator + fileName);
-        if (!file.exists())
-            return Collections.emptyMap();
-
         try (InputStream is = new FileInputStream(file)) {
             p.load(is);
         }
