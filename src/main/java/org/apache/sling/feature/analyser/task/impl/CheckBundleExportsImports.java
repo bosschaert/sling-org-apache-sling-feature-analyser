@@ -113,7 +113,6 @@ public class CheckBundleExportsImports implements AnalyserTask {
         }
     }
 
-
     @Override
     public void execute(final AnalyserTaskContext ctx) throws IOException {
         // basic checks
@@ -197,7 +196,7 @@ public class CheckBundleExportsImports implements AnalyserTask {
                                     // Only keep the regions that also export the package
                                     imRegions.retainAll(exRegions);
 
-                                    if (imRegions.size() > 0) {
+                                    if (!imRegions.isEmpty()) {
                                         // there is an overlapping region
                                         matchingCandidates.add(bd);
                                     }
@@ -326,7 +325,8 @@ public class CheckBundleExportsImports implements AnalyserTask {
                 }
 
                 for (String region : getBundleRegions(info, bundleToOriginalFeatures, featureToOriginalRegions)) {
-                    if (!NO_REGION.equals(region) && !apiRegions.getApis(region).contains(pck.getName()))
+                    if (!NO_REGION.equals(region) &&
+                            !apiRegions.getApis(region).contains(pck.getName()))
                         continue;
 
                     Set<String> regions = candidates.get(info);
