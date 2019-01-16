@@ -43,6 +43,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class CheckBundleExportsImports implements AnalyserTask {
     private static final String GLOBAL_REGION = "global";
@@ -168,12 +169,6 @@ public class CheckBundleExportsImports implements AnalyserTask {
                             for(final Map.Entry<BundleDescriptor, Set<String>> candidate : candidates.entrySet()) {
                                 BundleDescriptor bd = candidate.getKey();
                                 if (bd.isExportingPackage(pck)) {
-                                    if (bd.equals(info)) {
-                                        // A feature can always import packages from bundles in itself
-                                        matchingCandidates.add(bd);
-                                        continue;
-                                    }
-
                                     Set<String> exRegions = candidate.getValue();
                                     if (exRegions.contains(NO_REGION)) {
                                         // If an export is defined outside of a region, it always matches
@@ -181,6 +176,12 @@ public class CheckBundleExportsImports implements AnalyserTask {
                                         continue;
                                     }
                                     if (exRegions.contains(GLOBAL_REGION)) {
+                                        // Everyone can import from the global regin
+                                        matchingCandidates.add(bd);
+                                        continue;
+                                    }
+                                    if (exRegions.contains(OWN_FEATURE)) {
+                                        // A feature can always import packages from bundles in itself
                                         matchingCandidates.add(bd);
                                         continue;
                                     }
@@ -315,10 +316,24 @@ public class CheckBundleExportsImports implements AnalyserTask {
             final Map<String, Set<String>> bundleToOriginalFeatures,
             final Map<String, Set<String>> featureToOriginalRegions,
             final ApiRegions apiRegions) throws IOException {
+        Set<String> rf = bundleToOriginalFeatures.get(
+                requestingBundle.getArtifact().getId().toMvnId());
+        if (rf == null)
+            rf = Collections.emptySet();
+        final Set<String> requestingFeatures = rf;
+
         final Map<BundleDescriptor, Set<String>> candidates = new HashMap<>();
         for(final BundleDescriptor info : exportingBundles) {
             if ( info.isExportingPackage(pck.getName()) ) {
-                if (requestingBundle.equals(info)) {
+                Set<String> providingFeatures = bundleToOriginalFeatures.get(
+                        info.getArtifact().getId().toMvnId());
+                if (providingFeatures == null)
+                    providingFeatures = Collections.emptySet();
+
+                // Compute the intersection without modifying the sets
+                Set<String> intersection = providingFeatures.stream().filter(
+                        s -> requestingFeatures.contains(s)).collect(Collectors.toSet());
+                if (!intersection.isEmpty()) {
                     // A requesting bundle can see all exported packages inside its own feature
                     candidates.put(info, Collections.singleton(OWN_FEATURE));
                     continue;
