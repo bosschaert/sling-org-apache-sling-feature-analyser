@@ -356,7 +356,9 @@ public class CheckBundleExportsImports implements AnalyserTask {
 
         Properties p = new Properties();
 
-        File file = new File(fileStorage, fileName);
+        String featureName = ctx.getFeature().getId().toMvnId().replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
+
+        File file = new File(fileStorage, featureName + File.separator + fileName);
         if (!file.exists())
             return Collections.emptyMap();
 
