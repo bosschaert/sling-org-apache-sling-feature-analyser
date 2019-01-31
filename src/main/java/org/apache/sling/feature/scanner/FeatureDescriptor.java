@@ -21,14 +21,13 @@ import org.apache.sling.feature.Feature;
 /**
  * Information about a feature.
  */
-public abstract class FeatureDescriptor extends ContainerDescriptor {
+public class FeatureDescriptor extends ContainerDescriptor {
     private final Feature feature;
 
-    protected FeatureDescriptor(Feature f) {
+    public FeatureDescriptor(Feature f) {
         super(f.getId().toMvnId());
         feature = f;
         analyze(f);
-        lock();
     }
 
     private void analyze(Feature f) {

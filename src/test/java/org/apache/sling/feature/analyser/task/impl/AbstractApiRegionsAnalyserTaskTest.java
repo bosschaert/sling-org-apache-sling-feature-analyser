@@ -128,7 +128,7 @@ public abstract class AbstractApiRegionsAnalyserTaskTest<T extends AbstractApiRe
         BundleDescriptor bundleDescriptor = new TestBundleDescriptor();
         bundleDescriptor.getExportedPackages().add(packageInfo);
 
-        FeatureDescriptor featureDescriptor = new TestFeatureDescriptor();
+        FeatureDescriptor featureDescriptor = new FeatureDescriptor(feature);
         featureDescriptor.getBundleDescriptors().add(bundleDescriptor);
 
         when(ctx.getFeatureDescriptor()).thenReturn(featureDescriptor);
@@ -145,16 +145,10 @@ public abstract class AbstractApiRegionsAnalyserTaskTest<T extends AbstractApiRe
         return errors;
     }
 
-    private static final class TestFeatureDescriptor extends FeatureDescriptor {
-
-        @Override
-        public Feature getFeature() {
-            return null;
-        }
-
-    }
-
     private static final class TestBundleDescriptor extends BundleDescriptor {
+        TestBundleDescriptor() {
+            super("org.osgi:org.osgi.util.function:1.0.0");
+        }
 
         @Override
         public File getArtifactFile() {

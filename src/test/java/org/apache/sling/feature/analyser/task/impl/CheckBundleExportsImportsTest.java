@@ -65,12 +65,7 @@ public class CheckBundleExportsImportsTest {
 
         Feature f = new Feature(ArtifactId.fromMvnId("f:f:1"));
         f.setComplete(true);
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b3:1", "test-bundle3.jar");
@@ -91,12 +86,7 @@ public class CheckBundleExportsImportsTest {
         CheckBundleExportsImports t = new CheckBundleExportsImports();
 
         Feature f = new Feature(ArtifactId.fromMvnId("f:f:1"));
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b2:1", "test-bundle2.jar");
@@ -118,12 +108,7 @@ public class CheckBundleExportsImportsTest {
         CheckBundleExportsImports t = new CheckBundleExportsImports();
 
         Feature f = new Feature(ArtifactId.fromMvnId("f:f:1"));
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b3:1", "test-bundle3.jar");
@@ -153,12 +138,7 @@ public class CheckBundleExportsImportsTest {
         ex.setJSON(exJson);
         f.getExtensions().add(ex);
 
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b2:1", "test-bundle2.jar");
@@ -191,12 +171,7 @@ public class CheckBundleExportsImportsTest {
         ex.setJSON(exJson);
         f.getExtensions().add(ex);
 
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b2:1", "test-bundle2.jar");
@@ -234,12 +209,7 @@ public class CheckBundleExportsImportsTest {
         ex.setJSON(exJson);
         f.getExtensions().add(ex);
 
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b2:1", "test-bundle2.jar");
@@ -274,12 +244,7 @@ public class CheckBundleExportsImportsTest {
         ex.setJSON(exJson);
         f.getExtensions().add(ex);
 
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b3:1", "test-bundle3.jar");
@@ -312,12 +277,7 @@ public class CheckBundleExportsImportsTest {
         ex.setJSON(exJson);
         f.getExtensions().add(ex);
 
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b2:1", "test-bundle2.jar");
@@ -349,12 +309,7 @@ public class CheckBundleExportsImportsTest {
         ex.setJSON(exJson);
         f.getExtensions().add(ex);
 
-        FeatureDescriptor fd = new FeatureDescriptor() {
-            @Override
-            public Feature getFeature() {
-                return f;
-            }
-        };
+        FeatureDescriptor fd = new FeatureDescriptor(f);
 
         fdAddBundle(fd, "g:b1:1", "test-bundle1.jar");
         fdAddBundle(fd, "g:b2:1", "test-bundle2.jar");
