@@ -71,7 +71,51 @@ public class CheckRequirementsCapabilitiesTest {
     }
 
     @Test
-    public void testCheckRequirementsCapabilitiesMissing() {
-        // TODO
+    public void testCheckRequirementsCapabilitiesMissingFromBundle() throws Exception {
+        File f = new File(getClass().getResource("/test-bundle5.jar").getFile());
+
+        BundleDescriptor bd1 = new BundleDescriptorImpl(
+                new Artifact(ArtifactId.fromMvnId("g:b1:1.2.0")),
+                f, 7);
+
+        Feature feature = new Feature(ArtifactId.fromMvnId("a:b:1"));
+        FeatureDescriptor fd = new FeatureDescriptor(feature);
+        fd.getBundleDescriptors().add(bd1);
+
+        AnalyserTaskContext ctx = Mockito.mock(AnalyserTaskContext.class);
+        Mockito.when(ctx.getFeature()).thenReturn(feature);
+        Mockito.when(ctx.getFeatureDescriptor()).thenReturn(fd);
+
+        CheckRequirementsCapabilities crc = new CheckRequirementsCapabilities();
+        crc.execute(ctx);
+
+        Mockito.verify(ctx).reportError(Mockito.contains("org.foo.bar"));
+    }
+
+    @Test
+    public void testCheckRequirementsCapabilitiesMissingFromFeature() throws Exception {
+        Feature feature = new Feature(ArtifactId.fromMvnId("a:b:1"));
+
+        Capability cap1 = new CapabilityImpl(null,
+                "org.foo.blah", Collections.emptyMap(),
+                Collections.singletonMap("abc", "def"));
+        Capability cap2 = new CapabilityImpl(null,
+                "org.foo.bar", Collections.emptyMap(),
+                Collections.singletonMap("abc", "def"));
+        Requirement req = new RequirementImpl(null,
+                "org.zzz", "(&(zzz=aaa)(qqq=123))");
+
+        FeatureDescriptor fd = new FeatureDescriptor(feature);
+        fd.getCapabilities().addAll(Arrays.asList(cap1, cap2));
+        fd.getRequirements().add(req);
+
+        AnalyserTaskContext ctx = Mockito.mock(AnalyserTaskContext.class);
+        Mockito.when(ctx.getFeature()).thenReturn(feature);
+        Mockito.when(ctx.getFeatureDescriptor()).thenReturn(fd);
+
+        CheckRequirementsCapabilities crc = new CheckRequirementsCapabilities();
+        crc.execute(ctx);
+
+        Mockito.verify(ctx).reportError(Mockito.contains("org.zzz"));
     }
 }
