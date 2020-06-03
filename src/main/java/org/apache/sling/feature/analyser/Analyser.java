@@ -16,9 +16,15 @@
  */
 package org.apache.sling.feature.analyser;
 
-import static org.apache.sling.feature.analyser.task.AnalyzerTaskProvider.getTasks;
-import static org.apache.sling.feature.analyser.task.AnalyzerTaskProvider.getTasksByClassName;
-import static org.apache.sling.feature.analyser.task.AnalyzerTaskProvider.getTasksByIds;
+import org.apache.sling.feature.ArtifactId;
+import org.apache.sling.feature.Feature;
+import org.apache.sling.feature.analyser.task.AnalyserTask;
+import org.apache.sling.feature.analyser.task.AnalyserTaskContext;
+import org.apache.sling.feature.scanner.BundleDescriptor;
+import org.apache.sling.feature.scanner.FeatureDescriptor;
+import org.apache.sling.feature.scanner.Scanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,15 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.sling.feature.ArtifactId;
-import org.apache.sling.feature.Feature;
-import org.apache.sling.feature.analyser.task.AnalyserTask;
-import org.apache.sling.feature.analyser.task.AnalyserTaskContext;
-import org.apache.sling.feature.scanner.BundleDescriptor;
-import org.apache.sling.feature.scanner.FeatureDescriptor;
-import org.apache.sling.feature.scanner.Scanner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.sling.feature.analyser.task.AnalyzerTaskProvider.getTasks;
+import static org.apache.sling.feature.analyser.task.AnalyzerTaskProvider.getTasksByClassName;
+import static org.apache.sling.feature.analyser.task.AnalyzerTaskProvider.getTasksByIds;
 
 public class Analyser {
     /**
@@ -104,6 +104,10 @@ public class Analyser {
     }
 
     public AnalyserResult analyse(final Feature feature, final ArtifactId fwk) throws Exception {
+        return analyse(feature, fwk, Collections.emptyMap());
+    }
+
+    public AnalyserResult analyse(final Feature feature, final ArtifactId fwk, final Map<String,Object> context) throws Exception {
         logger.info("Starting analyzing feature '{}'...", feature.getId());
 
         final FeatureDescriptor featureDesc = scanner.scan(feature);
@@ -142,6 +146,11 @@ public class Analyser {
                 @Override
                 public Map<String,String> getConfiguration() {
                     return taskConfiguration;
+                }
+
+                @Override
+                public Map<String,Object> getContext() {
+                    return context;
                 }
 
                 @Override

@@ -51,6 +51,8 @@ public interface AnalyserTaskContext {
      */
     Map<String,String> getConfiguration();
 
+    Map<String,Object> getContext();
+
     /**
      * This method is invoked by a {@link AnalyserTask} to report
      * a warning.
