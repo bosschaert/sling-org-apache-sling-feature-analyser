@@ -20,6 +20,7 @@ import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Feature;
 import org.apache.sling.feature.analyser.task.AnalyserTask;
 import org.apache.sling.feature.analyser.task.AnalyserTaskContext;
+import org.apache.sling.feature.builder.FeatureProvider;
 import org.apache.sling.feature.scanner.BundleDescriptor;
 import org.apache.sling.feature.scanner.FeatureDescriptor;
 import org.apache.sling.feature.scanner.Scanner;
@@ -104,10 +105,11 @@ public class Analyser {
     }
 
     public AnalyserResult analyse(final Feature feature, final ArtifactId fwk) throws Exception {
-        return analyse(feature, fwk, Collections.emptyMap());
+        return analyse(feature, fwk, null);
     }
 
-    public AnalyserResult analyse(final Feature feature, final ArtifactId fwk, final Map<String,Object> context) throws Exception {
+    public AnalyserResult analyse(final Feature feature, final ArtifactId fwk,
+            final FeatureProvider featureProvider) throws Exception {
         logger.info("Starting analyzing feature '{}'...", feature.getId());
 
         final FeatureDescriptor featureDesc = scanner.scan(feature);
@@ -139,6 +141,11 @@ public class Analyser {
                 }
 
                 @Override
+                public FeatureProvider getFeatureProvider() {
+                    return featureProvider;
+                }
+
+                @Override
                 public BundleDescriptor getFrameworkDescriptor() {
                     return fwkDesc;
                 }
@@ -146,11 +153,6 @@ public class Analyser {
                 @Override
                 public Map<String,String> getConfiguration() {
                     return taskConfiguration;
-                }
-
-                @Override
-                public Map<String,Object> getContext() {
-                    return context;
                 }
 
                 @Override
