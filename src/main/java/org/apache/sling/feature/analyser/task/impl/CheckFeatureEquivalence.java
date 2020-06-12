@@ -27,7 +27,7 @@ import org.apache.sling.feature.analyser.task.AnalyserTaskContext;
 
 import java.util.Map;
 
-public class CheckArtifactEquivalence implements AnalyserTask {
+public class CheckFeatureEquivalence implements AnalyserTask {
 
     @Override
     public String getId() {
@@ -76,7 +76,7 @@ public class CheckArtifactEquivalence implements AnalyserTask {
         }
     }
 
-    private String assertArtifactsSame(Artifacts mainArts, Artifacts compArts, boolean strictMetadata) {
+    static String assertArtifactsSame(Artifacts mainArts, Artifacts compArts, boolean strictMetadata) {
         if (mainArts.size() != compArts.size()) {
             return "Compared artifacts are of different sizes";
         }
@@ -98,7 +98,7 @@ public class CheckArtifactEquivalence implements AnalyserTask {
         return null;
     }
 
-    private Artifact findArtifact(Artifacts list, ArtifactId artifactId) {
+    private static Artifact findArtifact(Artifacts list, ArtifactId artifactId) {
         for (Artifact a : list) {
             if (a.getId().equals(artifactId))
                 return a;
