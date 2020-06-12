@@ -19,10 +19,15 @@ package org.apache.sling.feature.analyser.task.impl;
 import org.apache.sling.feature.Artifact;
 import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Artifacts;
+import org.apache.sling.feature.Extension;
+import org.apache.sling.feature.ExtensionState;
+import org.apache.sling.feature.ExtensionType;
+import org.apache.sling.feature.Feature;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class CheckFeatureEquivalenceTest {
     @Test
@@ -81,5 +86,38 @@ public class CheckFeatureEquivalenceTest {
 
         assertNotNull(CheckFeatureEquivalence.assertArtifactsSame(a1, a2, true));
         assertNull(CheckFeatureEquivalence.assertArtifactsSame(a1, a2, false));
+    }
+
+    @Test
+    public void testFindArtifactsToCompare() throws Exception {
+        Feature f = new Feature(ArtifactId.fromMvnId("x:y:123"));
+        f.getBundles().add(new Artifact(ArtifactId.fromMvnId("grp:bundle1:1")));
+        Extension ext = new Extension(ExtensionType.TEXT, "textext", ExtensionState.REQUIRED);
+        ext.setText("hello");
+        f.getExtensions().add(ext);
+        Extension ext2 = new Extension(ExtensionType.ARTIFACTS, "artext", ExtensionState.REQUIRED);
+        ext2.getArtifacts().add(new Artifact(ArtifactId.fromMvnId("grp:extart1:2")));
+        ext2.getArtifacts().add(new Artifact(ArtifactId.fromMvnId("grp:extart2:5")));
+        f.getExtensions().add(ext2);
+
+        Artifacts arts1 = CheckFeatureEquivalence.getArtifactsToCompare(f, null);
+        assertEquals(arts1, f.getBundles());
+
+        Artifacts arts2 = CheckFeatureEquivalence.getArtifactsToCompare(f, "artext");
+        assertEquals(ext2.getArtifacts(), arts2);
+
+        try {
+            CheckFeatureEquivalence.getArtifactsToCompare(f, "textext");
+            fail("Expected an exception, because textext is not of type Artifacts");
+        } catch (Exception ex) {
+            // good
+        }
+
+        try {
+            CheckFeatureEquivalence.getArtifactsToCompare(f, "nonexisting");
+            fail("Expected an exception, because a non-existing extension was requested");
+        } catch (Exception ex) {
+            // good
+        }
     }
 }

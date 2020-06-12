@@ -45,6 +45,11 @@ public class CheckFeatureEquivalence implements AnalyserTask {
         String aid = cfg.get("compare-with");
         String ext = cfg.get("compare-extension");
         String mode = cfg.getOrDefault("compare-mode", "SAME");
+        String type = cfg.getOrDefault("compare-type", "ARTIFACTS");
+        if (!"ARTIFACTS".equals(type)) {
+            throw new Exception("The only supported value for 'compare-type' right now is ARTIFACTS");
+        }
+
         boolean strictMetadata = !cfg.getOrDefault("compare-metadata", "false").equalsIgnoreCase("false");
 
         Feature feat = ctx.getFeatureProvider().provide(ArtifactId.fromMvnId(aid));
@@ -64,14 +69,14 @@ public class CheckFeatureEquivalence implements AnalyserTask {
         }
 
         if (violationMessage != null) {
-            String type;
+            String origin;
             if (ext == null) {
-                type = "bundles";
+                origin = "bundles";
             } else {
-                type = "extension " + ext;
+                origin = "extension " + ext;
             }
 
-            ctx.reportError("Compare " + type + " in feature " + feat.getId() + " and "
+            ctx.reportError("Compare " + origin + " in feature " + feat.getId() + " and "
                     + ctx.getFeature().getId() + " failed: " + violationMessage);
         }
     }
@@ -106,7 +111,7 @@ public class CheckFeatureEquivalence implements AnalyserTask {
         return null;
     }
 
-    private Artifacts getArtifactsToCompare(Feature feat, String ext) throws Exception {
+    static Artifacts getArtifactsToCompare(Feature feat, String ext) throws Exception {
         Artifacts artifacts;
         if (ext == null) {
             // compare bundles
