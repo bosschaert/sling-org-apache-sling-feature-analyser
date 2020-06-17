@@ -23,11 +23,19 @@ import org.apache.sling.feature.Extension;
 import org.apache.sling.feature.ExtensionState;
 import org.apache.sling.feature.ExtensionType;
 import org.apache.sling.feature.Feature;
+import org.apache.sling.feature.analyser.task.AnalyserTaskContext;
+import org.apache.sling.feature.builder.FeatureProvider;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import java.util.AbstractMap;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 public class CheckFeatureEquivalenceTest {
     @Test
@@ -119,5 +127,151 @@ public class CheckFeatureEquivalenceTest {
         } catch (Exception ex) {
             // good
         }
+    }
+
+    @Test
+    public void testExecute1() throws Exception {
+        Feature f = new Feature(ArtifactId.fromMvnId("g:a:123"));
+        f.getBundles().add(new Artifact(ArtifactId.fromMvnId("g:b:1")));
+        Feature fc = new Feature(ArtifactId.fromMvnId("g:b:456"));
+        fc.getBundles().add(new Artifact(ArtifactId.fromMvnId("g:b:1")));
+
+        AnalyserTaskContext ctx = testExecute(f, fc);
+
+        Mockito.verify(ctx, Mockito.never()).reportError(Mockito.anyString());
+    }
+
+    @Test
+    public void testExecute2() throws Exception {
+        Feature f = new Feature(ArtifactId.fromMvnId("g:a:123"));
+        f.getBundles().add(new Artifact(ArtifactId.fromMvnId("g:b:1")));
+        Feature fc = new Feature(ArtifactId.fromMvnId("g:b:456"));
+
+        AnalyserTaskContext ctx = testExecute(f, fc);
+
+        Mockito.verify(ctx).reportError(Mockito.anyString());
+    }
+
+    @Test
+    public void testExecute3() throws Exception {
+        Feature f1 = new Feature(ArtifactId.fromMvnId("g:a:123"));
+        Extension e1 = new Extension(ExtensionType.ARTIFACTS, "myarts", ExtensionState.REQUIRED);
+        e1.getArtifacts().add(new Artifact(ArtifactId.fromMvnId("g:c:1")));
+        e1.getArtifacts().add(new Artifact(ArtifactId.fromMvnId("g:c:2")));
+        f1.getExtensions().add(e1);
+
+        Feature f2 = new Feature(ArtifactId.fromMvnId("g:b:456"));
+        Extension e2 = new Extension(ExtensionType.ARTIFACTS, "myarts", ExtensionState.REQUIRED);
+        e2.getArtifacts().add(new Artifact(ArtifactId.fromMvnId("g:c:2")));
+        e2.getArtifacts().add(new Artifact(ArtifactId.fromMvnId("g:c:1")));
+        f2.getExtensions().add(e2);
+
+        AnalyserTaskContext ctx = testExecute(f1, f2, "myarts");
+
+        Mockito.verify(ctx, Mockito.never()).reportError(Mockito.anyString());
+    }
+
+    @Test
+    public void testExecute4() throws Exception {
+        Feature f1 = new Feature(ArtifactId.fromMvnId("g:a:123"));
+        Extension e1 = new Extension(ExtensionType.ARTIFACTS, "myarts", ExtensionState.REQUIRED);
+        f1.getExtensions().add(e1);
+
+        Feature f2 = new Feature(ArtifactId.fromMvnId("g:b:456"));
+        Extension e2 = new Extension(ExtensionType.ARTIFACTS, "myarts", ExtensionState.REQUIRED);
+        e2.getArtifacts().add(new Artifact(ArtifactId.fromMvnId("g:c:2")));
+        f2.getExtensions().add(e2);
+
+        AnalyserTaskContext ctx = testExecute("SAME", f1, f2, "myarts");
+
+        Mockito.verify(ctx).reportError(Mockito.anyString());
+    }
+
+    @Test
+    public void testAssertEmptyArtifactsNotDifferent() throws Exception {
+        Feature f = new Feature(ArtifactId.fromMvnId("g:a:123"));
+        Feature fc = new Feature(ArtifactId.fromMvnId("g:b:456"));
+
+        AnalyserTaskContext ctx = testExecute("DIFFERENT", f, fc);
+
+        Mockito.verify(ctx).reportError(Mockito.anyString());
+    }
+
+    @Test
+    public void testAssertDiffSizeArtifactsDifferent() throws Exception {
+        Artifact art1 = new Artifact(ArtifactId.fromMvnId("a:b:1"));
+        art1.getMetadata().put("foo", "bar");
+
+        Artifact art2 = new Artifact(ArtifactId.fromMvnId("a:b:1"));
+
+        Feature f = new Feature(ArtifactId.fromMvnId("g:a:123"));
+        f.getBundles().add(art1);
+        Feature fc = new Feature(ArtifactId.fromMvnId("g:b:456"));
+        fc.getBundles().add(art2);
+
+        @SuppressWarnings("unchecked")
+        AnalyserTaskContext ctx = testExecute("DIFFERENT", f, fc, null,
+                new AbstractMap.SimpleEntry<>("compare-metadata", "false"));
+        Mockito.verify(ctx).reportError(Mockito.anyString());
+
+        @SuppressWarnings("unchecked")
+        AnalyserTaskContext ctx2 = testExecute("DIFFERENT", f, fc, null,
+                new AbstractMap.SimpleEntry<>("compare-metadata", "true"));
+        Mockito.verify(ctx2, Mockito.never()).reportError(Mockito.anyString());
+    }
+
+    private AnalyserTaskContext testExecute(String mode, Feature f, Feature fc) throws Exception {
+        return testExecute(mode, f, fc, null);
+    }
+
+    private AnalyserTaskContext testExecute(Feature f, Feature fc) throws Exception {
+        return testExecute(null, f, fc, null);
+    }
+
+    private AnalyserTaskContext testExecute(Feature f, Feature fc, String extension) throws Exception {
+        return testExecute(null, f, fc, extension);
+    }
+
+    @SuppressWarnings("unchecked")
+    private AnalyserTaskContext testExecute(String mode, Feature f, Feature fc, String extension) throws Exception {
+        return testExecute(mode, f, fc, extension, new Map.Entry[0]);
+    }
+
+    private AnalyserTaskContext testExecute(String mode, Feature f, Feature fc, String extension,
+            @SuppressWarnings("unchecked") Map.Entry<String, String> ... cfgEntries) throws Exception {
+        Map<String, String> cfg = new HashMap<>();
+        cfg.put("compare-with", f.getId().toMvnId());
+
+        if (mode != null) {
+            cfg.put("compare-mode", mode);
+        }
+
+        if (extension != null) {
+            cfg.put("compare-extension", extension);
+        }
+
+        for (Map.Entry<String, String> entry : cfgEntries) {
+            cfg.put(entry.getKey(), entry.getValue());
+        }
+
+        CheckFeatureEquivalence cfe = new CheckFeatureEquivalence();
+
+        FeatureProvider fp = new FeatureProvider() {
+            @Override
+            public Feature provide(ArtifactId id) {
+                if ("g:a:123".equals(id.toMvnId())) {
+                    return f;
+                }
+                return null;
+            }
+        };
+
+        AnalyserTaskContext ctx = Mockito.mock(AnalyserTaskContext.class);
+        Mockito.when(ctx.getConfiguration()).thenReturn(cfg);
+        Mockito.when(ctx.getFeatureProvider()).thenReturn(fp);
+        Mockito.when(ctx.getFeature()).thenReturn(fc);
+
+        cfe.execute(ctx);
+        return ctx;
     }
 }

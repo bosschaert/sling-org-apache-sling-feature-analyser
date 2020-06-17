@@ -64,6 +64,14 @@ public class CheckFeatureEquivalence implements AnalyserTask {
         case "SAME":
             violationMessage = assertArtifactsSame(mainArts, compArts, strictMetadata);
             break;
+        case "DIFFERENT":
+            violationMessage = assertArtifactsSame(mainArts, compArts, strictMetadata);
+            if (violationMessage == null) {
+                violationMessage = "Artifacts are not different";
+            } else {
+                violationMessage = null;
+            }
+            break;
         default:
             throw new Exception("Unknown comparison mode: " + mode);
         }
