@@ -25,7 +25,7 @@ information as part of the check, to ensure that bundles don't import packages o
 
 * `bundle-resources`: Gives a warning if a bundle contains resources specified with `Sling-Bundle-Resources`.
 
-* `compare-features`: Compares the artifacts in the bundles sections or in an extension between two feature models. For more information see below.
+* `compare-features`: Compares the artifacts in the bundles sections or in an extension between two feature models. For more information see [below](#compare-features).
 
 * `requirements-capabilities`: Checks bundle requirements/capabilities for consistency and completeness.
 
@@ -37,11 +37,11 @@ For further documentation see: https://github.com/apache/sling-org-apache-sling-
 
 ## `compare-features`
 
-Compare-features compares certain sections of two feature models.
+This analyser compares certain sections of two feature models.
 
 This analyser requires additional configuration:
 
- configuration key | allowed values | description 
+ Configuration key | Allowed values | Description 
  ----- | ----- | -----
 `compare-type` | `ARTIFACTS` | The types of entities being compared. Currently only artifacts can be compared.
 `compare-with` | Maven ID, e.g. `mygroup:myart:1.2.3` | The _golden_ feature to compare the features selected for the analyser with.
