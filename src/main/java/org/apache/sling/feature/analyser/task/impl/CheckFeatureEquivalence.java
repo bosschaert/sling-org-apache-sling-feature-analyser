@@ -43,6 +43,10 @@ public class CheckFeatureEquivalence implements AnalyserTask {
     public void execute(AnalyserTaskContext ctx) throws Exception {
         Map<String, String> cfg = ctx.getConfiguration();
         String aid = cfg.get("compare-with");
+        if (aid == null) {
+            throw new Exception("Missing 'compare-with' configuration for compare-features analyser.");
+        }
+
         String ext = cfg.get("compare-extension");
         String mode = cfg.getOrDefault("compare-mode", "SAME");
         String type = cfg.getOrDefault("compare-type", "ARTIFACTS");
